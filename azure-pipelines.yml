@@ -28,16 +28,14 @@ jobs:
  - job: main
    displayName: Compile and test
    dependsOn: []
-   matrix:
-     Windows:
-       vmImage: windows-2022
-       rust: nightly
    pool:
-     vmImage: $(vmImage)
+     vmImage: windows-2022
    steps:
-     - template: install-rust.yml
-       parameters:
-         rust: $(rust)
+     - script: |
+               curl -sSf -o rustup-init.exe https://win.rustup.rs
+               rustup-init.exe -y --profile minimal --default-toolchain %RUSTUP_TOOLCHAIN% --default-host x86_64-pc-windows-msvc
+               set PATH=%PATH%;%USERPROFILE%\.cargo\bin
+               echo "##vso[task.setvariable variable=PATH;]%PATH%;%USERPROFILE%\.cargo\bin"
      # Run any user-specific setup steps
      - ${{ parameters.setup }}
      - script: cargo run --package ioring-rs --example readme --all-features 
