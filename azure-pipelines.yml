@@ -1,11 +1,3 @@
-parameters:
-  min: false
-  setup: []
-  services: {}
-  env: {}
-  cross: true
-  dir: "."
-
 jobs:
  - job: style
    displayName: Style linting
@@ -27,8 +19,6 @@ jobs:
          components:
            - rustfmt
            - clippy
-     # Run any user-specific setup steps
-     - ${{ parameters.setup }}
      - script: cargo fmt --all -- --check
        workingDirectory: ${{ parameters.dir }}
        displayName: cargo fmt --check
@@ -38,16 +28,12 @@ jobs:
  - job: main
    displayName: Compile and test
    dependsOn: []
-   ${{ if eq('true', parameters.cross) }}:
-     strategy:
-       matrix:
-         Windows:
-           vmImage: windows-2022
-           rust: nightly
+   matrix:
+     Windows:
+       vmImage: windows-2022
+       rust: nightly
    pool:
      vmImage: $(vmImage)
-   services:
-     ${{ insert }}: ${{ parameters.services }}
    steps:
      - template: install-rust.yml
        parameters:
