@@ -1,0 +1,68 @@
+parameters:
+  min: false
+  setup: []
+  services: {}
+  env: {}
+  cross: true
+  dir: "."
+
+jobs:
+ - job: style
+   displayName: Style linting
+   pool:
+     vmImage: ubuntu-18.04
+   continueOnError: true
+   steps:
+     # latest nightly may not have rustfmt/clippy
+     # we can't check for both:
+     # https://github.com/rust-lang/rustup-components-history/issues/9
+     # but we at least check for one.
+     # rustfmt _seems_ to break most often:
+     - bash: |
+         echo '##vso[task.setvariable variable=nightly]nightly-'$(curl -s https://rust-lang.github.io/rustup-components-history/x86_64-unknown-linux-gnu/rustfmt)
+       displayName: "Determine latest style nightly"
+     - template: install-rust.yml
+       parameters:
+         rust: $(nightly)
+         components:
+           - rustfmt
+           - clippy
+     # Run any user-specific setup steps
+     - ${{ parameters.setup }}
+     - script: cargo fmt --all -- --check
+       workingDirectory: ${{ parameters.dir }}
+       displayName: cargo fmt --check
+     - script: cargo clippy --all
+       workingDirectory: ${{ parameters.dir }}
+       displayName: cargo clippy -- -D warnings
+ - job: main
+   displayName: Compile and test
+   dependsOn: []
+   ${{ if eq('true', parameters.cross) }}:
+     strategy:
+       matrix:
+         Windows:
+           vmImage: windows-2022
+           rust: nightly
+   pool:
+     vmImage: $(vmImage)
+   services:
+     ${{ insert }}: ${{ parameters.services }}
+   steps:
+     - template: install-rust.yml
+       parameters:
+         rust: $(rust)
+     # Run any user-specific setup steps
+     - ${{ parameters.setup }}
+     - script: cargo run --package ioring-rs --example readme --all-features 
+       workingDirectory: ${{ parameters.dir }}
+       displayName: cargo example readme
+     - script: cargo run --package ioring-rs --example tcp_echo --all-features 
+       workingDirectory: ${{ parameters.dir }}
+       displayName: cargo example tcp_echo
+     - script: cargo run --package ioring-rs --example raw_api_read --all-features 
+       workingDirectory: ${{ parameters.dir }}
+       displayName: cargo example raw_api_read
+     - script: cargo doc --no-deps
+       workingDirectory: ${{ parameters.dir }}
+       displayName: cargo doc

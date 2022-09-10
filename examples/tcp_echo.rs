@@ -21,4 +21,13 @@ enum Token {
         len: usize,
     },
 }
+pub struct AcceptCount {
+    entry: squeue::Entry,
+    count: usize,
+}
+
+impl AcceptCount {
+    fn new(fd: RawHandle, token: usize, count: usize) -> AcceptCount {}
+}
+
 fn main() {}

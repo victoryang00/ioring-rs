@@ -145,9 +145,13 @@ impl Iterator for CompletionQueue<'_> {
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         dbg!(self.head);
-        Some(Entry(unsafe {
+        let res = Some(Entry(unsafe {
             win_ring_cqe_iter(self.queue.info, self.head)
-        }))
+        }));
+        if self.should_drop() {
+            self.head = self.head.wrapping_add(1);
+        };
+        res
     }
 }
 
